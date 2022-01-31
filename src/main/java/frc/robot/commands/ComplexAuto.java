@@ -9,11 +9,11 @@ public class ComplexAuto extends SequentialCommandGroup {
     public ComplexAuto(DriveSubsystem drive) {
         addCommands(
                 // Drive forward the specified distance
-                new DriveDistance(
-                        AutoConstants.kAutoDriveDistanceInches, AutoConstants.kAutoDriveSpeed, drive),
+                new DriveDistanceProfiled(
+                        AutoConstants.kAutoDriveDistance, drive),
 
                 // Drive backward the specified distance
-                new DriveDistance(
-                        AutoConstants.kAutoBackupDistanceInches, -AutoConstants.kAutoDriveSpeed, drive));
+                new DriveDistanceProfiled(
+                        -AutoConstants.kAutoBackupDistance, drive));
     }
 }
