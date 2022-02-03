@@ -36,9 +36,9 @@ public class DriveConstants {
     /**
      * CIM Motor max RPM with free load
      * 
-     * @see https://www.vexrobotics.com/217-2000.html#attr-vex_docs_downloads
+     * @see https://motors.vex.com
      */
-    public static final double kMaxRPM = 5310;
+    public static final double kMaxRPM = 5330;
 
     /**
      * Toughbox Mini 10.71:1
@@ -65,7 +65,7 @@ public class DriveConstants {
     public static final double kPDriveVel = 1.93;
 
     public static final double kMaxSpeedMetersPerSecond = 3;
-    public static final double kMaxAccelerationMetersPerSecondSquared = 1;
+    public static final double kMaxAccelerationMetersPerSecondSquared = 2;
 
     public static final DifferentialDriveKinematics kDriveKinematics = new DifferentialDriveKinematics(
             kTrackwidthMeters);

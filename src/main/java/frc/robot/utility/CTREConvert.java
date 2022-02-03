@@ -64,4 +64,12 @@ public class CTREConvert {
         double velocityMetersPerSecond = wheelRotationsPersSecond * Math.PI * DriveConstants.kWheelDiameterMeters;
         return velocityMetersPerSecond;
     }
+
+
+    public static double rpmToNativeUnits(double motorRotationsPerMinute) {
+        double motorRotationsPerSecond = motorRotationsPerMinute / 60;
+        double motorRotationsPer100ms = motorRotationsPerSecond / 10;
+        int sensorCountsPer100ms = (int) (motorRotationsPer100ms * DriveConstants.kEncoderCPR);
+        return sensorCountsPer100ms;
+    }
 }

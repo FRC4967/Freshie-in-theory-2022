@@ -8,14 +8,28 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.kauailabs.navx.frc.AHRS;
 
+import edu.wpi.first.hal.SimDouble;
+import edu.wpi.first.hal.simulation.SimDeviceDataJNI;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.I2C;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotGearing;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotMotor;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim.KitbotWheelSize;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.DriveConstants;
+import frc.robot.sim.PhysicsSim;
 import frc.robot.utility.CTREConvert;
 
 public class DriveSubsystem extends SubsystemBase {
@@ -50,6 +64,12 @@ public class DriveSubsystem extends SubsystemBase {
     private double lastLeftDistance = 0;
     private double lastRightDistance = 0;
 
+    // These classes help us simulate our drivetrain
+    public DifferentialDrivetrainSim m_drivetrainSimulator;
+
+    /** Simulated field */
+    private Field2d m_field = new Field2d();
+
     /** Creates a new DriveSubsystem. */
     public DriveSubsystem() {
 
@@ -73,9 +93,16 @@ public class DriveSubsystem extends SubsystemBase {
 
         m_drive = new DifferentialDrive(m_leftLeader, m_rightLeader);
 
-        m_odometry = new DifferentialDriveOdometry(m_gyro.getRotation2d());
+        m_odometry = new DifferentialDriveOdometry(m_gyro.getRotation2d(), new Pose2d(3, 3, Rotation2d.fromDegrees(0)));
 
         resetEncoders();
+
+        SmartDashboard.putData("Field", m_field);
+
+        if (RobotBase.isSimulation()) { // If our robot is simulated
+            simulationInit();
+        }
+
     }
 
     private void configureMotor(WPI_TalonSRX motor) {
@@ -122,7 +149,59 @@ public class DriveSubsystem extends SubsystemBase {
             lastRightDistance = rightDistance;
         }
 
-        m_odometry.update(m_gyro.getRotation2d(), leftDistance, rightDistance);
+        // m_odometry.update(m_gyro.getRotation2d(), leftDistance, rightDistance);
+        m_odometry.update(m_drivetrainSimulator.getHeading(), m_drivetrainSimulator.getLeftPositionMeters(), m_drivetrainSimulator.getLeftPositionMeters());
+
+        m_field.setRobotPose(m_odometry.getPoseMeters());
+    }
+
+    public void simulationInit() {
+
+        var physicsSim = PhysicsSim.getInstance();
+        var fullVelocity = CTREConvert.rpmToNativeUnits(DriveConstants.kMaxRPM);
+        physicsSim.addTalonSRX(m_leftLeader, 0.75, fullVelocity, DriveConstants.kLeftEncoderReversed);
+        physicsSim.addTalonSRX(m_rightLeader, 0.75, fullVelocity, DriveConstants.kRightEncoderReversed);
+
+        var driveMotor = DCMotor.getCIM(2);
+        double gearing = 1 / DriveConstants.kDriveGearing;
+        double jKgMetersSquared = 2.1;
+        double massKg = 26.5;
+        double wheelRadiusMeters = DriveConstants.kWheelDiameterMeters / 2;
+        double trackWidthMeters = DriveConstants.kTrackwidthMeters;
+
+        // The standard deviations for measurement noise:
+        // x and y: 0.001 m
+        // heading: 0.001 rad
+        // l and r velocity: 0.1 m/s
+        // l and r position: 0.005 m
+        var measurementStdDevs = VecBuilder.fill(0.001, 0.001, 0.001, 0.1, 0.1, 0.005, 0.005);
+
+        m_drivetrainSimulator = DifferentialDrivetrainSim.createKitbotSim(
+                KitbotMotor.kDualCIMPerSide,
+                KitbotGearing.k10p71,
+                KitbotWheelSize.kSixInch,
+                measurementStdDevs);
+
+        // m_drivetrainSimulator = new DifferentialDrivetrainSim(driveMotor, gearing, jKgMetersSquared, massKg,
+        //         wheelRadiusMeters, trackWidthMeters, null);
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        PhysicsSim.getInstance().run();
+
+        var leftVoltage = m_leftLeader.getMotorOutputVoltage();
+        var rightVoltage = m_rightLeader.getMotorOutputVoltage();
+        m_drivetrainSimulator.setInputs(leftVoltage, rightVoltage);
+        
+
+        m_drivetrainSimulator.update(0.020);
+
+        // Update NavX gyro (per
+        // https://pdocs.kauailabs.com/navx-mxp/software/roborio-libraries/java/)
+        int dev = SimDeviceDataJNI.getSimDeviceHandle("navX-Sensor[0]");
+        SimDouble angle = new SimDouble(SimDeviceDataJNI.getSimValueHandle(dev, "Yaw"));
+        angle.set(-m_drivetrainSimulator.getHeading().getDegrees());
     }
 
     /**
