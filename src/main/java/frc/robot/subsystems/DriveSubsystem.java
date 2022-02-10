@@ -149,8 +149,12 @@ public class DriveSubsystem extends SubsystemBase {
             lastRightDistance = rightDistance;
         }
 
-        // m_odometry.update(m_gyro.getRotation2d(), leftDistance, rightDistance);
-        m_odometry.update(m_drivetrainSimulator.getHeading(), m_drivetrainSimulator.getLeftPositionMeters(), m_drivetrainSimulator.getLeftPositionMeters());
+        if (RobotBase.isSimulation()) {
+            m_odometry.update(m_drivetrainSimulator.getHeading(), m_drivetrainSimulator.getLeftPositionMeters(),
+                    m_drivetrainSimulator.getLeftPositionMeters());
+        } else {
+            m_odometry.update(m_gyro.getRotation2d(), leftDistance, rightDistance);
+        }
 
         m_field.setRobotPose(m_odometry.getPoseMeters());
     }
@@ -182,8 +186,9 @@ public class DriveSubsystem extends SubsystemBase {
                 KitbotWheelSize.kSixInch,
                 measurementStdDevs);
 
-        // m_drivetrainSimulator = new DifferentialDrivetrainSim(driveMotor, gearing, jKgMetersSquared, massKg,
-        //         wheelRadiusMeters, trackWidthMeters, null);
+        // m_drivetrainSimulator = new DifferentialDrivetrainSim(driveMotor, gearing,
+        // jKgMetersSquared, massKg,
+        // wheelRadiusMeters, trackWidthMeters, null);
     }
 
     @Override
@@ -193,7 +198,6 @@ public class DriveSubsystem extends SubsystemBase {
         var leftVoltage = m_leftLeader.getMotorOutputVoltage();
         var rightVoltage = m_rightLeader.getMotorOutputVoltage();
         m_drivetrainSimulator.setInputs(leftVoltage, rightVoltage);
-        
 
         m_drivetrainSimulator.update(0.020);
 
@@ -268,7 +272,7 @@ public class DriveSubsystem extends SubsystemBase {
      */
     public Pose2d getPose() {
         var pose = m_odometry.getPoseMeters();
-        System.out.println(String.format("Pose %.5f", pose.getX()));
+        // System.out.println(String.format("Pose %.5f", pose.getRotation().getDegrees()));
         return pose;
     }
 
@@ -302,6 +306,7 @@ public class DriveSubsystem extends SubsystemBase {
                 .nativeUnitsToVelocityMetersPerSecond(m_leftLeader.getSelectedSensorVelocity());
         var rightMetersPerSecond = CTREConvert
                 .nativeUnitsToVelocityMetersPerSecond(m_rightLeader.getSelectedSensorVelocity());
+        // System.out.println(String.format("L %.5f m/s", leftMetersPerSecond));
         return new DifferentialDriveWheelSpeeds(leftMetersPerSecond, rightMetersPerSecond);
     }
 

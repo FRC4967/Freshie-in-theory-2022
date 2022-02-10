@@ -53,9 +53,9 @@ public class DriveConstants {
     public static final double kTrackwidthMeters = 0.62;
     public static final int kTalonContinuousCurrentLimit = 40;
 
-    public static final double ksVolts = 1.0644;
-    public static final double kvVoltSecondsPerMeter = 1.1483;
-    public static final double kaVoltSecondsSquaredPerMeter = 0.43839;
+    public static final double ksVolts = 1.2695;
+    public static final double kvVoltSecondsPerMeter = 2.3906;
+    public static final double kaVoltSecondsSquaredPerMeter = 0.87573;
 
     /** Feedforward values from SysId tool */
     public static final SimpleMotorFeedforward feedforward = new SimpleMotorFeedforward(
@@ -64,8 +64,8 @@ public class DriveConstants {
     /** P coefficient for velocity PID */
     public static final double kPDriveVel = 1.93;
 
-    public static final double kMaxSpeedMetersPerSecond = 3;
-    public static final double kMaxAccelerationMetersPerSecondSquared = 2;
+    public static final double kMaxSpeedMetersPerSecond = 2;
+    public static final double kMaxAccelerationMetersPerSecondSquared = 0.2;
 
     public static final DifferentialDriveKinematics kDriveKinematics = new DifferentialDriveKinematics(
             kTrackwidthMeters);
